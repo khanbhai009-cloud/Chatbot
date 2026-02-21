@@ -26,7 +26,7 @@ client = OpenAI(
 )
 
 # You can easily change the model here in the future
-AI_MODEL = "deepseek/deepseek-chat:free"
+AI_MODEL = "meta-llama/llama-3.1-8b-instruct:free"
 
 
 # ==========================================
