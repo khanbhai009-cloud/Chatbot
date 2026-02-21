@@ -26,7 +26,7 @@ client = OpenAI(
 )
 
 # You can easily change the model here in the future
-AI_MODEL = "meta-llama/llama-3.1-8b-instruct:free"
+AI_MODEL = "z-ai/glm-4.5-air:free"
 
 
 # ==========================================
