@@ -26,7 +26,8 @@ client = OpenAI(
 )
 
 # You can easily change the model here in the future
-AI_MODEL = "meta-llama/llama-3.3-70b-instruct:free"
+AI_MODEL = "deepseek/deepseek-chat:free"
+
 
 # ==========================================
 # 🧠 CHATBOT PERSONALITY (SYSTEM PROMPT)
