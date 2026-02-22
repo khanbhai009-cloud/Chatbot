@@ -28,8 +28,7 @@ client = OpenAI(
 # 🚀 MULTIPLE AI FALLBACK LIST (Priority Order)
 # The system will try these models one by one from top to bottom.
 AI_MODELS = [
-    "z-ai/glm-4.5-air:free",                  # Priority 1 (Primary Model)
-    "deepseek/deepseek-r1-0528:free",         # Priority 2 (First Backup)
+    "z-ai/glm-4.5-air:free",                  #          # Priority 2 (First Backup)
     "meta-llama/llama-3.3-70b-instruct:free"  # Priority 3 (Final Backup)
 ]
 
