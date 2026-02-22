@@ -14,7 +14,7 @@ app = Flask(__name__)
 CORS(app)
 
 # ==========================================
-# ⚙️ CONFIGURATION: API KEY AND MODEL
+# ⚙️ CONFIGURATION: API KEY AND MODELS
 # ==========================================
 # The API key is securely loaded from the .env file. Never hardcode it here!
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
@@ -25,8 +25,13 @@ client = OpenAI(
     api_key=OPENROUTER_API_KEY,
 )
 
-# You can easily change the model here in the future
-AI_MODEL = "z-ai/glm-4.5-air:free"
+# 🚀 MULTIPLE AI FALLBACK LIST (Priority Order)
+# The system will try these models one by one from top to bottom.
+AI_MODELS = [
+    "z-ai/glm-4.5-air:free",                  # Priority 1 (Primary Model)
+    "deepseek/deepseek-r1-0528:free",         # Priority 2 (First Backup)
+    "meta-llama/llama-3.3-70b-instruct:free"  # Priority 3 (Final Backup)
+]
 
 
 # ==========================================
@@ -58,32 +63,54 @@ def chat():
     try:
         # 1. Parse incoming JSON data
         data = request.get_json()
-        
+
         # 2. Validate the input
         if not data or not data.get("message"):
             return jsonify({
                 "status": "error",
                 "message": "Validation Error: 'message' field is required and cannot be empty."
             }), 400
-            
+
         user_message = data.get("message").strip()
         # Get history if it exists, otherwise use an empty list
         chat_history = data.get("history", []) 
-        
+
         # 3. Construct the message array for the AI
-        # Start with the System Prompt, append the history, then add the new user message
         messages = [{"role": "system", "content": SYSTEM_PROMPT}]
         messages.extend(chat_history)
         messages.append({"role": "user", "content": user_message})
 
-        # 4. Make the API call to OpenRouter
-        response = client.chat.completions.create(
-            model=AI_MODEL,
-            messages=messages,
-        )
+        # ==========================================
+        # 🔄 THE FALLBACK LOGIC ENGINE
+        # ==========================================
+        ai_reply = None
+        
+        # Loop through our list of models
+        for model in AI_MODELS:
+            try:
+                print(f"🔄 Attempting to generate response using: {model}...")
+                response = client.chat.completions.create(
+                    model=model,
+                    messages=messages,
+                )
+                
+                # If successful, save the reply and break out of the loop
+                ai_reply = response.choices[0].message.content
+                print(f"✅ Success with {model}!")
+                break  
+            
+            except Exception as model_error:
+                # If this model fails, print the error and continue to the next one
+                print(f"⚠️ {model} failed. Error: {str(model_error)}")
+                continue  
 
-        # 5. Extract the AI's reply
-        ai_reply = response.choices[0].message.content
+        # 5. Final check: Did ALL models fail?
+        if not ai_reply:
+            print("❌ CRITICAL: All fallback models failed.")
+            return jsonify({
+                "status": "error",
+                "message": "Sorry, all our AI servers are currently overloaded. Please try again in a few seconds."
+            }), 500
 
         # 6. Send successful response back to the frontend
         return jsonify({
@@ -92,15 +119,13 @@ def chat():
         }), 200
 
     except Exception as e:
-        # Catch any errors (e.g., API downtime, network issues) and return a clean JSON error
-        print(f"Error during chat processing: {str(e)}") # Log for server terminal
+        # Catch any server/code errors and return a clean JSON error
+        print(f"Error during chat processing: {str(e)}") 
         return jsonify({
             "status": "error",
-            "message": "Oops! Something went wrong while connecting to the AI. Please try again later."
+            "message": "Oops! Something went wrong on the server side. Please try again later."
         }), 500
 
-# Run the app locally (this is ignored by Gunicorn in production)
+# Run the app locally
 if __name__ == '__main__':
-    # Debug=True is great for local development, automatically reloads on code changes
     app.run(host='0.0.0.0', port=5000, debug=True)
-
